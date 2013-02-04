@@ -1,0 +1,287 @@
+\documentclass[a4paper,11pt]{article}\usepackage{graphicx, color}
+%% maxwidth is the original width if it is less than linewidth
+%% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\definecolor{fgcolor}{rgb}{0.2, 0.2, 0.2}
+\newcommand{\hlnumber}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hlfunctioncall}[1]{\textcolor[rgb]{0.501960784313725,0,0.329411764705882}{\textbf{#1}}}%
+\newcommand{\hlstring}[1]{\textcolor[rgb]{0.6,0.6,1}{#1}}%
+\newcommand{\hlkeyword}[1]{\textcolor[rgb]{0,0,0}{\textbf{#1}}}%
+\newcommand{\hlargument}[1]{\textcolor[rgb]{0.690196078431373,0.250980392156863,0.0196078431372549}{#1}}%
+\newcommand{\hlcomment}[1]{\textcolor[rgb]{0.180392156862745,0.6,0.341176470588235}{#1}}%
+\newcommand{\hlroxygencomment}[1]{\textcolor[rgb]{0.43921568627451,0.47843137254902,0.701960784313725}{#1}}%
+\newcommand{\hlformalargs}[1]{\textcolor[rgb]{0.690196078431373,0.250980392156863,0.0196078431372549}{#1}}%
+\newcommand{\hleqformalargs}[1]{\textcolor[rgb]{0.690196078431373,0.250980392156863,0.0196078431372549}{#1}}%
+\newcommand{\hlassignement}[1]{\textcolor[rgb]{0,0,0}{\textbf{#1}}}%
+\newcommand{\hlpackage}[1]{\textcolor[rgb]{0.588235294117647,0.709803921568627,0.145098039215686}{#1}}%
+\newcommand{\hlslot}[1]{\textit{#1}}%
+\newcommand{\hlsymbol}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hlprompt}[1]{\textcolor[rgb]{0.2,0.2,0.2}{#1}}%
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
+%Use article for short documents
+\usepackage[T1]{fontenc}
+\usepackage{parskip}
+\usepackage{latexsym,amsmath,amssymb}
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{times}
+\usepackage{epstopdf}
+\usepackage{verbatim}
+\usepackage[font=sf, labelfont={sf,bf}, margin=1cm]{caption}
+\usepackage{subcaption}
+\usepackage{inconsolata}
+\usepackage[a4paper,left=3cm,right=3cm,top=3cm,bottom=3cm]{geometry}
+
+% \VignetteIndexEntry{An R Package for ...}
+% \VignetteDepends{foo, bar, ...}
+% \VignetteKeyword{kwd1}
+% \VignetteKeyword{kwd2}
+
+
+\title{\textbf{newscrapeR} \\ A data mining tool for R}
+\author{Philipp Burckhardt}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+The newscrapeR package provides a YQL-based tool for data mining. The idea of YQL (an acronym for Yahoo! Query Language) is to understand the Internet as a big database. Therefore, YQL is designed in the style of SQL, the standard language for relational databases. One of the greatest advantages of YQL is that Yahoo! works as a proxy for your queries allowing cross-domain communication.
+
+
+With YQL as an underlying framework, this package aims to provide the user with an easy-to-use interface to build up huge collections of articles, in a format ready to be analyzed via common statistical methods. Therefore, export methods for formats such as data.frames or text mining Corpora are provided.
+
+In detail, the newscrapeR package grants scanning of various news sources (such as newspapers) and the extraction of the current articles from their websites. The article contents are stored in plain-text format, which means: all contaminating information such as HTML tags, advertisements, banners etc. are removed. Only the meat remains. 
+
+\section{Getting Started}
+
+To install the package, run the following commands:
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlfunctioncall{download.file}(url = \hlstring{"http://dl.dropbox.com/u/8439596/newscrapeR_0.7.tar.gz"}, 
+    destfile = \hlstring{"newscrapeR.tar.gz"})
+\hlfunctioncall{install.packages}(\hlstring{"newscrapeR.tar.gz"}, type = \hlstring{"source"}, repos = NULL)
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+As usual, the package is loaded by running the following command:
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlfunctioncall{library}(newscrapeR)
+\end{alltt}
+
+
+{\ttfamily\noindent\itshape\textcolor{messagecolor}{\#\# Loading required package: rjson}}\end{kframe}
+\end{knitrout}
+
+
+\section{Workflow}
+In the following section, the use of the main functions is described. The impatient reader may skip reading and just execute the given commands. 
+
+\subsection{Creating a newscrapeR object}
+
+Creating a newscrapeR object is fairly easy. 
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+MyHoustonChronicle <- \hlfunctioncall{newscrapeR}(\hlstring{"Houston Chronicle"})
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+
+
+With this command, the newly created object MyHoustonChronicle scans the webpages of the Houston Chronicle and stores the articles found on the main page. To inspect how many articles have been fetched, just type the name of your object:
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+MyHoustonChronicle
+\end{alltt}
+\begin{verbatim}
+## Included Sources: 
+## Houston Chronicle : 15 articles
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+
+Such an object may consist of just one or a multitude of different sources. So a call like the following is equally valid:
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+MyNewsStand <- \hlfunctioncall{newscrapeR}(\hlfunctioncall{c}(\hlstring{"Houston Chronicle"}, \hlstring{"Denver Post"}, \hlstring{"Chicago Tribune"}))
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+This functionality enables the user to build up a highly diversified and flexible article database. To find out which sources are currently supported, just call the following function on your newscrapeR object:
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlfunctioncall{available.sources}(MyHoustonChronicle)
+\end{alltt}
+\begin{verbatim}
+## Available newscrapeR Sources: 
+## ---------------------------- 
+## Spiegel Online, URL: http://www.spiegel.de 
+## Die Welt, URL: http://www.welt.de 
+## The Independent, URL: http://www.independent.co.uk/ 
+## The Telegraph, URL: http://www.telegraph.co.uk/ 
+## National Post, URL: http://www.nationalpost.com 
+## Houston Chronicle, URL: http://www.chron.com/ 
+## The Guardian, URL: http://www.guardian.co.uk/ 
+## Chicago Tribune, URL: http://www.chicagotribune.com/ 
+## Baltimore Sun, URL: http://www.baltimoresun.com/ 
+## The Detroit News, URL: http://www.detroitnews.com 
+## New York Daily News, URL: http://www.nydailynews.com/ 
+## Denver Post, URL: http://www.denverpost.com
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+
+As you see, there are already a few more newspapers supported besides the Houston Chronicle. This list will be extended in the future, and it will also include articles from the blogosphere and the social media.
+
+Once a newscrapeR object has been created, it is not petrified but can be easily extended to include further news sources.
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlfunctioncall{add.sources}(MyHoustonChronicle, \hlstring{"Denver Post"})
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+\subsection{Downloading Articles}
+
+The real power of the newscrapeR object lies in its simplicity and its repeated use. With it, it is possible to download the current articles every day without having to face annoying problems like duplicated articles or complicated data management. The download process is as easy as the construction of a new object. Just call:
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlfunctioncall{download}(MyHoustonChronicle)
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+This call starts the download, thereby updating the object with the newly found articles since all downloaded articles are part of the newscrapeR object.
+
+\subsection{Selecting Articles}
+
+You may access the downloaded articles by calling:
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlfunctioncall{articles}(MyHoustonChronicle)
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+There are various options for changing the scope of your search. If you have an object containing multiple sources like our \emph{newsstand}, you might choose only articles from one or many specified sources:
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlfunctioncall{articles}(MyNewsStand, sources = \hlstring{"Chicago Tribune"})
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+You can also scan the articles for a specific keyword:
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlfunctioncall{articles}(MyNewsStand, keyword = \hlstring{"Obama"})
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+This last command scans all the sources of our \emph{newsstand} for articles which contain the given keyword. As expected, you can combine the arguments to scan a specific source for a specific keyword. 
+
+Last but not least, you can specify a date range:
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlfunctioncall{articles}(MyNewsStand, from = \hlstring{"2012-12-20"}, to = \hlstring{"2012-12-28"})
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+\subsection{Making Use of newscrapeR Articles}
+
+Since newscrapeR is stricly object-oriented (it uses R reference classes), not only the newscrapeR is an object, but also the embedded child objects, like the Article object. An Article contains not only the plain-text, but also additional attributes such as publication date, source and author. 
+
+If you want make use of the stored data with methods from other R packages, currently two export functions are provided, which take a list of articles as an argument. 
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+my_articles <- \hlfunctioncall{articles}(MyNewsStand)
+\hlfunctioncall{ArtListToDF}(my_articles)
+\hlfunctioncall{ArtListToCorpus}(my_articles)
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+ArtListToDF exports the article list as a data.frame, whereas ArtListToCorpus exports the list as a text corpus ready to be analyzed with methods from the text mining package "tm".
+
+\subsection{Working with multiple objects}
+
+Since newscrapeR is stricly object-oriented (it uses R reference classes), you can build as many different newscrapeR objects as you may think of. 
+
+\end{document}

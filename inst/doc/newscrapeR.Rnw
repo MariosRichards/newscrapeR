@@ -1,0 +1,145 @@
+\documentclass[a4paper,11pt]{article}
+%Use article for short documents
+\usepackage[T1]{fontenc}
+\usepackage{parskip}
+\usepackage{latexsym,amsmath,amssymb}
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{times}
+\usepackage{epstopdf}
+\usepackage{verbatim}
+\usepackage[font=sf, labelfont={sf,bf}, margin=1cm]{caption}
+\usepackage{subcaption}
+\usepackage{inconsolata}
+\usepackage[a4paper,left=3cm,right=3cm,top=3cm,bottom=3cm]{geometry}
+
+% \VignetteIndexEntry{Using newscrapeR}
+% \VignetteDepends{rjson, methods, tm}
+% \VignetteKeyword{newsscraper}
+% \VignetteKeyword{news scraper}
+
+
+\title{\textbf{newscrapeR} \\ A data mining tool for R}
+\author{Philipp Burckhardt}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+The newscrapeR package provides a YQL-based tool for data mining. The idea of YQL (an acronym for Yahoo! Query Language) is to understand the Internet as a big database. Therefore, YQL is designed in the style of SQL, the standard language for relational databases. One of the greatest advantages of YQL is that Yahoo! works as a proxy for your queries allowing cross-domain communication.
+
+
+With YQL as an underlying framework, this package aims to provide the user with an easy-to-use interface to build up huge collections of articles, in a format ready to be analyzed via common statistical methods. Therefore, export methods for formats such as data.frames or text mining Corpora are provided.
+
+In detail, the newscrapeR package grants scanning of various news sources (such as newspapers) and the extraction of the current articles from their websites. The article contents are stored in plain-text format, which means: all contaminating information such as HTML tags, advertisements, banners etc. are removed. Only the meat remains. 
+
+\section{Getting Started}
+
+To install the package, run the following commands:
+
+<<eval=FALSE>>=
+download.file(url="http://dl.dropbox.com/u/8439596/newscrapeR_0.7.tar.gz",destfile="newscrapeR.tar.gz")
+install.packages("newscrapeR.tar.gz",type="source",repos=NULL)
+@
+
+As usual, the package is loaded by running the following command:
+
+<<>>=
+library(newscrapeR)
+@
+
+\section{Workflow}
+In the following section, the use of the main functions is described. The impatient reader may skip reading and just execute the given commands. 
+
+\subsection{Creating a newscrapeR object}
+
+Creating a newscrapeR object is fairly easy. 
+
+<<echo=TRUE,eval=FALSE>>=
+MyHoustonChronicle <- newscrapeR("Houston Chronicle")
+@
+<<echo=TRUE,include=FALSE>>=
+MyHoustonChronicle <- newscrapeR("Houston Chronicle")
+@
+
+With this command, the newly created object MyHoustonChronicle scans the webpages of the Houston Chronicle and stores the articles found on the main page. To inspect how many articles have been fetched, just type the name of your object:
+
+<<>>=
+MyHoustonChronicle
+@
+
+Such an object may consist of just one or a multitude of different sources. So a call like the following is equally valid:
+
+<<eval=FALSE>>=
+MyNewsStand <- newscrapeR(c("Houston Chronicle","Denver Post","Chicago Tribune"))
+@
+
+This functionality enables the user to build up a highly diversified and flexible article database. To find out which sources are currently supported, just call the following function on your newscrapeR object:
+<<>>=
+available.sources(MyHoustonChronicle)
+@
+
+As you see, there are already a few more newspapers supported besides the Houston Chronicle. This list will be extended in the future, and it will also include articles from the blogosphere and the social media.
+
+Once a newscrapeR object has been created, it is not petrified but can be easily extended to include further news sources.
+<<eval=FALSE>>=
+add.sources(MyHoustonChronicle,"Denver Post")
+@
+
+\subsection{Downloading Articles}
+
+The real power of the newscrapeR object lies in its simplicity and its repeated use. With it, it is possible to download the current articles every day without having to face annoying problems like duplicated articles or complicated data management. The download process is as easy as the construction of a new object. Just call:
+
+<<eval=FALSE>>=
+download(MyHoustonChronicle)
+@
+
+This call starts the download, thereby updating the object with the newly found articles since all downloaded articles are part of the newscrapeR object.
+
+\subsection{Selecting Articles}
+
+You may access the downloaded articles by calling:
+
+<<eval=FALSE>>=
+articles(MyHoustonChronicle)
+@
+
+There are various options for changing the scope of your search. If you have an object containing multiple sources like our \emph{newsstand}, you might choose only articles from one or many specified sources:
+
+<<eval=FALSE>>=
+articles(MyNewsStand,sources="Chicago Tribune")
+@
+
+You can also scan the articles for a specific keyword:
+
+<<eval=FALSE>>=
+articles(MyNewsStand,keyword="Obama")
+@
+
+This last command scans all the sources of our \emph{newsstand} for articles which contain the given keyword. As expected, you can combine the arguments to scan a specific source for a specific keyword. 
+
+Last but not least, you can specify a date range:
+<<eval=FALSE>>=
+articles(MyNewsStand,from="2012-12-20",to="2012-12-28")
+@
+
+\subsection{Making Use of newscrapeR Articles}
+
+Since newscrapeR is stricly object-oriented (it uses R reference classes), not only the newscrapeR is an object, but also the embedded child objects, like the Article object. An Article contains not only the plain-text, but also additional attributes such as publication date, source and author. 
+
+If you want make use of the stored data with methods from other R packages, currently two export functions are provided, which take a list of articles as an argument. 
+
+<<eval=FALSE>>=
+my_articles <- articles(MyNewsStand)
+ArtListToDF(my_articles)
+ArtListToCorpus(my_articles)
+@
+
+ArtListToDF exports the article list as a data.frame, whereas ArtListToCorpus exports the list as a text corpus ready to be analyzed with methods from the text mining package "tm".
+
+\subsection{Working with multiple objects}
+
+Since newscrapeR is stricly object-oriented (it uses R reference classes), you can build as many different newscrapeR objects as you may think of. 
+
+\end{document}
