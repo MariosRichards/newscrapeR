@@ -8,14 +8,14 @@ Download current articles
 Called upon an newscrapeR object, this function initializes a download of all the current articles from the sources inside the newscrapeR object.
 }
 \usage{
-download(object, sources)
+download(object, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{object}{
 newscrapeR object for which the articles should be downloaded
 }
-  \item{sources}{
+  \item{...}{
 a character vector specifying the sources of the newscrapeR object for which a download should be executed
 }
 }

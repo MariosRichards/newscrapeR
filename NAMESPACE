@@ -27,3 +27,4 @@ exportClasses(newscrapeR)
 # twitteR connection
 exportClasses(TwitterCitation)
 exportClasses(CitationContainer)
+exportClasses(UserContainer)

@@ -1,4 +1,4 @@
-TwitterCitation <- setRefClass("TwitterCitation",
+aTwitterCitation <- setRefClass("TwitterCitation",
                                 
           fields = list(twitteRobj = "list",
                         url = "character",
@@ -92,7 +92,7 @@ TwitterCitation <- setRefClass("TwitterCitation",
                             if (!is.null(temp_url))
                             {
                               .self$fixed_url <- temp_url
-                              grabbed <- try(searchTwitter(.self$fixed_url, n = 800))                
+                              grabbed <- try(searchTwitter(.self$fixed_url, n = 800, ssl.verifypeer = FALSE))                
                               already_fetched_ids <- vector() 
                               
                               for (i in 1:nrow(.self$tweetsDF))
@@ -235,6 +235,88 @@ CitationContainer = setRefClass("CitationContainer",
                   )
                                                           
 );
+
+#################### Twitter User List ########################## 
+
+UserContainer = setRefClass("UserContainer",
+                            fields = list( user_list = "list",
+                                           pending_users = "vector",
+                                           included_users = "vector"
+                              ),
+                            methods = list (
+                              getUserIDs = function(CitationContainer)
+                                  {
+                                  if (!inherits(CitationContainer, "CitationContainer")) 
+                                  stop("CitationContainer must be of class 'CitationContainer'")
+                                  else
+                                    {
+                                    cit_list <- CitationContainer$citation_list 
+                                    user_names <- character()   
+                                    for (i in 1:length(cit_list))
+                                      {
+                                      user_names <- c(user_names,cit_list[[i]]$tweetsDF$screenName)
+                                      }
+                                    
+                                    # remove users which appear more than once and 
+                                    # leave only one instance of the respective users
+                                    user_names <- user_names[!duplicated(user_names)]
+                                    }
+                              
+                                  .self$pending_users <- user_names
+                                  },
+                              
+                              getPendingUsers = function()
+                                {
+                                pending <- .self$pending_users
+                                pending_unresolved <- character()
+                                
+                                stopping = FALSE
+
+                                    while (stopping == FALSE)
+                                    {
+                                      if (length(pending)>=50) 
+                                        
+                                          {
+                                          res <- try(expr = lookupUsers(users = pending[1:50]),)
+                                          if (class(res) != "try-error")
+                                              {
+                                            lapply(X=res, FUN = function(x)
+                                                  {
+                                                  screenName <- x$getScreenName()
+                                                  
+                                                  if (!screenName %in% .self$included_users) 
+                                                      {
+                                                        .self$user_list[[length(.self$user_list)+1]] <- x
+                                                        .self$included_users <- c(.self$included_users, screenName)
+                                                      }
+                                                  })
+                                            pending <- pending[-(1:50)]
+                                              }
+                                          else 
+                                            {
+                                            pending_unresolved <- c(pending_unresolved, pending[1:50]) 
+                                            pending <- pending[-(1:50)]
+                                            }
+                                          
+                                          }
+                                          else
+                                          {
+                                            stopping <- TRUE;
+                                          }
+                                    }
+                            
+                                  }
+                                
+                              
+                              
+                              )                                                
+                            ) 
+
+
+UserContainer$accessors(c("user_list","pending_users","included_users"));
+
+
+#################################################################
 
 CitationContainer$accessors(c("citation_list","pending_articles"));
 

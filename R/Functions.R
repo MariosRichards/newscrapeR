@@ -92,13 +92,15 @@ article <- setRefClass("Article",
                          load_date ="Date",
                          published_in = "character",
                          pub_date = "Date",
-                         empty_content = "logical"
+                         empty_content = "logical",
+                         dumped = "logical"
                        ),
                        
                        methods = list(
                          initialize = function(title=as.character(NA), author=as.character(NA), 
                                                abstract=as.character(NA), content, url,load_date=Sys.Date(),
-                                               pub_date=as.Date(NA),published_in,empty_content=FALSE)
+                                               pub_date=as.Date(NA),published_in,empty_content=FALSE,
+                                               dumped=FALSE)
                          {
                            .self$title <- title;
                            .self$abstract <- abstract;
@@ -109,6 +111,7 @@ article <- setRefClass("Article",
                            .self$pub_date <- pub_date;
                            .self$published_in <- published_in;
                            .self$empty_content <- empty_content;
+                           .self$dumped <- dumped;
                            
                          },
                          
@@ -173,7 +176,8 @@ NewsSource <- setRefClass("Source",
                       article_links = "list",
                       articles = "list",
                       article_xpath = "character",
-                      pbar          = "ANY"
+                      pbar          = "ANY",
+                      parent = "ANY"
                       
                     ),
                     
@@ -269,7 +273,8 @@ NewsSource <- setRefClass("Source",
                       
                       initialize = function(query = as.character(NA), url = as.character(NA), 
                                             name = as.character(NA), aliases = vector(), article_xpath = "none", 
-                                            cleansing = FALSE, rss = FALSE, old_Source = NULL)
+                                            cleansing = FALSE, rss = FALSE, old_Source = NULL
+                                            )
                         {
                           
                           if(is.null(old_Source))
@@ -280,7 +285,8 @@ NewsSource <- setRefClass("Source",
                               .self$aliases <- aliases;
                               .self$article_xpath <- article_xpath;
                               .self$rss <- rss;
-                              .self$cleansing <- cleansing;                       
+                              .self$cleansing <- cleansing;   
+                              
                             }
                           else
                             {
@@ -338,7 +344,9 @@ NewsSource <- setRefClass("Source",
                       {
                         total <- length(list)
                         # create progress bar
-                        .self$pbar <- txtProgressBar(min = 0, max = total, style = 3)
+                        if (total > 0)
+                        {
+                        .self$pbar <- txtProgressBar(min = 0, max = total, style = 3)  
                       
                         for (i in seq_along(list))
                           {
@@ -361,6 +369,9 @@ NewsSource <- setRefClass("Source",
                           }
                       
                          devprint(.self$article_links)
+                        }
+                        else 
+                          cat("\n No new articles from ",.self$name," available right now. Try again later.")
                       },
                       
                       # if there is a valid url
@@ -460,6 +471,10 @@ NewsSource <- setRefClass("Source",
                             
                             .self$articles[[i]] <- new_article
                             
+                            # write to SQL database
+                            .self$parent$dump_article(new_article)
+                            .self$articles[[i]]$dumped <- TRUE;
+                            
                             # update progress bar
                             fetched_counter <- fetched_counter + 1;                           
                             setTxtProgressBar( .self$pbar, fetched_counter);
@@ -475,11 +490,10 @@ NewsSource <- setRefClass("Source",
                         }
                         
                         setTxtProgressBar( .self$pbar, fetched_counter + 1);
+                        close(.self$pbar)
                         }
                         else cat("\n No new articles from ",.self$name," available right now. Try again later.")
-                                      
-                      close(.self$pbar)
-                     
+                                  
                       },
                       
                       # fetches a single article
@@ -556,11 +570,14 @@ NewsSource <- setRefClass("Source",
                           if (is.null(link_obj$link)==TRUE)
                           {
                             if (is.null(link_obj$url)==TRUE) {devprint("wir haben ein problem")}
-                            else return(link_obj$url)
+                            else final <- link_obj$url
                           }
-                          else return(link_obj$link)
+                          else final <- link_obj$link
                         }
-                        else return(link_obj$href)
+                        else  final <- link_obj$href
+                       
+                        if (is.character(final)) return(final)
+                        if (is.list(link_obj$link)) return(final[[1]])  
                         
                       }
                                    
@@ -585,7 +602,9 @@ scrapeR <- setRefClass("newscrapeR",
                        active_source_list ="list",
                        links       = "vector",
                        active_links = "vector",
-                       ROAuth = "ANY"
+                       ROAuth = "ANY",
+                       con = "ANY",
+                       drv = "ANY"
                        
                      ),
                      
@@ -738,15 +757,133 @@ scrapeR <- setRefClass("newscrapeR",
                                                                
                        },
                        
-                       initialize = function(links, old_newscrapeR = NULL)
+                       dump_article = function(article)
+                       { 
+                         require(RSQLite)
+                         enc <- function(x) 
+                            {
+                            require(tau)
+                            x <- gsub("'", "''", x) 
+                            x <- fixEncoding(x)
+                            x
+                            }
+                         connection = .self$con;
+                         var_sql <- "INSERT INTO Article(title, author, abstract, content, url, load_date, published_in, pub_date, empty_content) VALUES('"
+                         
+                         var_sql <- paste(var_sql,enc(article$getTitle()),"',",sep="")                 
+                         var_sql <- paste(var_sql,"'",enc(article$getAuthor()),"',", sep="")
+                         var_sql <- paste(var_sql,"'",enc(article$getAbstract()),"',", sep="")
+                         var_sql <- paste(var_sql,"'",enc(article$getContent()),"',", sep="")
+                         var_sql <- paste(var_sql,"'",article$getUrl(),"',", sep="")
+                         
+                         load_ts <- as.numeric(as.POSIXlt(article$getLoad_date()))
+                         
+                         var_sql <- paste(var_sql, load_ts, ",", sep="")
+                         var_sql <- paste(var_sql,"'",enc(article$getPublished_in()),"',", sep="")
+                         
+                         pub_ts <- as.numeric(as.POSIXlt(article$getPub_date()))
+                         if (is.na(pub_ts)) pub_ts <- 0 
+                         
+                         var_sql <- paste(var_sql, pub_ts, ",", sep="")
+                         
+                         var_sql <- paste(var_sql, as.integer(article$empty_content),")",sep="")
+                         
+                         print(var_sql)
+                         dbSendQuery(connection, var_sql)
+                         
+                         
+                       },
+                       
+                       complete_dump = function()
                          {
+                         
+                         for (i in seq_along(.self$active_source_list))
+                           {
+                            a <- active_source_list[[i]]
+                            for (j in seq_along(a$articles))
+                            {
+                            a$articles[[j]]$dumped = FALSE;
+                            if (a$articles[[j]]$dumped == FALSE) 
+                                {
+                                .self$dump_article(a$articles[[j]]) 
+                                a$articles[[j]]$dumped = TRUE;
+                                
+                                }
+                            }
+                           }
+                                    
+                         },
+                       
+                       search_articles = function(keywords = character(), sources = vector(),
+                                                  from, to)
+                        {
+                         
+                         query_string <-  "SELECT * FROM Article WHERE "
+                         
+                         if (length(keywords)>0)
+                         cond1 <- paste(paste("content LIKE '%",keywords,"%'",sep=""),collapse=" AND ")
+                         else cond1 <- ""
+                         
+                         if (length(sources)>0)
+                         {
+                         if(nchar(cond1)>1) cond1 <- paste(cond1," AND ",collapse=" ")
+                         cond2 <- paste(paste("published_in LIKE '%",sources,"%'",sep=""),collapse=" OR ")
+                         }
+                         else cond2 <- ""
+                         
+                         query_string <- paste(query_string, cond1, cond2, sep="")
+                         print(query_string)
+                         res <- dbGetQuery(conn=.self$con,query_string)
+                         Encoding(res$content) <- "UTF-8"
+                         Encoding(res$title) <- "UTF-8"
+                         return(res)
+                        },
+                         
+                       initialize = function(links, old_newscrapeR = NULL, db_name)
+                         {
+                            if (is.null(db_name)) 
+                              {
+                                .self$name <- "newscrapeR"
+                                db_name <- "newscrapeR.db"
+                              } 
+                            else 
+                              {
+                               .self$name <- db_name 
+                               db_name <- paste(db_name,".db",sep="")
+                              }
+                            
+                            require(RSQLite)              
+                            .self$drv <- dbDriver("SQLite") 
+                            .self$con <- dbConnect(.self$drv,db_name)
+                            dbGetQuery(.self$con,"PRAGMA ENCODING = \"UTF-8\";")
+                            
+                            if (!"Article" %in% dbListTables(.self$con))
+                              {                        
+                              create_str <- "CREATE TABLE Article(Id INTEGER PRIMARY KEY,
+                                              title VARCHAR(512),
+                                              author CHAR(164),
+                                              abstract TEXT,
+                                              content TEXT,
+                                              url VARCHAR(512),
+                                              load_date INTEGER,
+                                              published_in CHAR(80),
+                                              pub_date INTEGER,
+                                              empty_content INTEGER 
+                                              )"
+                              
+                              dbSendQuery(.self$con, create_str)
+                              
+                              }
+                              
+                         
                            .self$links = links;
                            
                            # initialization of sources
                            
                            spiegel = new("Source", query="select * from rss where url='http://www.spiegel.de/schlagzeilen/index.rss'",
                                          name="Spiegel Online",aliases=c("Spiegel","Der Spiegel","Spiegel Online"),url="http://www.spiegel.de",rss=TRUE,
-                                         article_xpath="//div[@id='spArticleSection']/p[not(script)]");
+                                         article_xpath="//div[@id='spArticleSection']/p[not(script)]"
+                                         );
                            
                            .self$source_list[1] = spiegel;
                            
@@ -870,7 +1007,13 @@ scrapeR <- setRefClass("newscrapeR",
                                         article_xpath="//div[@id='storyBodyContent']/p|a")
                            
                            .self$source_list <- append_list(.self$source_list,miami)
-                           
+                          
+                            
+                            for (i in 1:length(.self$source_list))
+                                {
+                                .self$source_list[[i]]$parent = .self
+                                }
+                            
                            # here is the start of the reading procedure
                            if (is.null(old_newscrapeR))
                              .self$check_list(.self$links)
@@ -884,6 +1027,7 @@ scrapeR <- setRefClass("newscrapeR",
                                {
                                new_source_list[[i]]  <- NewsSource$new(old_Source = 
                                                                       old_newscrapeR$active_source_list[[i]]) 
+                               new_source_list[[i]]$parent = .self;
                                }
                              .self$active_source_list <- new_source_list
                              }
@@ -936,16 +1080,16 @@ scrapeR <- setRefClass("newscrapeR",
 # Arguments:
 # sources - character vector of included sources
 
-newscrapeR <- function(sources = vector() )
+newscrapeR <- function(sources = vector(), db_name = NULL)
   {
-    ret <-new("newscrapeR",links = sources)
+    ret <-new("newscrapeR",links = sources, db_name = db_name)
     ret
   }
 
 
-migrate.newscrapeR <- function(newscrapeRobj)
+migrate.newscrapeR <- function(newscrapeRobj, db_name = NULL)
   {
-  ret <- scrapeR$new(old_newscrapeR = newscrapeRobj, links = vector() )   
+  ret <- scrapeR$new(old_newscrapeR = newscrapeRobj, links = vector(),  db_name = db_name)   
   ret
   }
 
@@ -1079,11 +1223,23 @@ setGeneric("download",
            }
 );
 
-setMethod("download","newscrapeR", function(object, sources = NULL) 
+setMethod("download","newscrapeR", function(object, sources = NULL, exclude = NULL) 
             
              {
               final_sources <- list()
-              if (is.null(sources)) final_sources = object$active_source_list
+              if (is.null(sources)) 
+                {
+                if (is.null(exclude)) final_sources = object$active_source_list
+                else
+                  {
+                  for (i in seq_along(object$active_source_list))
+                    {
+                      if (!object$active_source_list[[i]]$name %in% exclude) # does not deal with aliases yet
+                        final_sources <- append_list(final_sources,object$active_source_list[[i]])
+                    }
+                  }
+                }
+              
               else 
                 {
                 for (i in seq_along(object$active_source_list))
