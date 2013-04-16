@@ -1,4 +1,4 @@
-aTwitterCitation <- setRefClass("TwitterCitation",
+TwitterCitation <- setRefClass("TwitterCitation",
                                 
           fields = list(twitteRobj = "list",
                         url = "character",
@@ -8,8 +8,7 @@ aTwitterCitation <- setRefClass("TwitterCitation",
                         created_at = "POSIXct",
                         last_updated ="Date",
                         all_fetched = "logical",
-                        tweetsDF = "data.frame",
-                        source_name = "character"
+                        tweetsDF = "data.frame"
                         ),
                               
           methods = list( initialize = function(source_name,url,tweetsDF = data.frame(), all_fetched = FALSE,
@@ -30,7 +29,7 @@ aTwitterCitation <- setRefClass("TwitterCitation",
                                     .self$source_name = oldTwitterCitation$source_name;
                                     .self$url = oldTwitterCitation$url;
                                     .self$tweetsDF = oldTwitterCitation$tweetsDF;
-                                    .self$created_at = created_at;
+                                    .self$created_at = oldTwitterCitation$created_at;
                                     .self$article_title = oldTwitterCitation$article_title;
                                     .self$last_updated = oldTwitterCitation$last_updated;
                                     .self$fixed_url = oldTwitterCitation$fixed_url
@@ -92,7 +91,7 @@ aTwitterCitation <- setRefClass("TwitterCitation",
                             if (!is.null(temp_url))
                             {
                               .self$fixed_url <- temp_url
-                              grabbed <- try(searchTwitter(.self$fixed_url, n = 800, ssl.verifypeer = FALSE))                
+                              grabbed <- try(searchTwitter(.self$fixed_url, n = 800))                
                               already_fetched_ids <- vector() 
                               
                               for (i in 1:nrow(.self$tweetsDF))
@@ -129,7 +128,9 @@ CitationContainer = setRefClass("CitationContainer",
     fields = list( citation_list = "list",
                    pending_articles = "list",
                    last_added ="Date",
-                   newscrapeR_name = "character"
+                   newscrapeR = "ANY",
+                   con = "ANY",
+                   drv = "ANY"
                   ),
                                  
     methods = list( 
@@ -156,11 +157,19 @@ CitationContainer = setRefClass("CitationContainer",
                     
                     add_citations = function()
                       {
-                      
-                      newscrapeRobj <- eval(parse(text=.self$newscrapeR_name), envir=.GlobalEnv)
+                      newscrapeRobj <- .self$newscrapeR
                       art_list <- articles(newscrapeRobj, sources = .self$source_name)
-                      null_list <- lapply(art_list, function(x) if(x$load_date >= .self$last_added) x)
-                      .self$pending_articles <- as.list(unlist(null_list))
+                      ReadArticlesURLs <- lapply(.self$citation_list, function(x) x$url)
+                      
+                      null_list <- list()
+                      
+                      for (i in 1:length(art_list))
+                        {
+                        if (!art_list[[i]]$url %in% ReadArticlesURLs) 
+                          null_list <- append_list(null_list, art_list[[i]]) 
+                        }
+                      
+                      .self$pending_articles <- null_list
                       return_list <- list()
                       no_articles <- length(.self$pending_articles)
                      
@@ -183,9 +192,60 @@ CitationContainer = setRefClass("CitationContainer",
                       }
                       
                       },
-                                   
-                    initialize = function(newscrapeRobj, oldContainer = NULL, newscrapeR_name, source_name)
+                    
+                    SQL_init = function()
                       {
+                      db_name <- "tweets.db"
+                      
+                      require(RSQLite)              
+                      .self$drv <- dbDriver("SQLite") 
+                      .self$con <- dbConnect(.self$drv,db_name)
+                      dbGetQuery(.self$con,"PRAGMA ENCODING = \"UTF-8\";")
+                                       
+                      if (!"TwitterCitation" %in% dbListTables(.self$con))
+                        {                        
+                          create_str <- "CREATE TABLE TwitterCitation(Id INTEGER PRIMARY KEY,
+                          article_title VARCHAR(512),
+                          url VARCHAR(512), 
+                          fixed_url ARCHAR(512), 
+                          created_at INTEGER,
+                          source_name CHAR(80),
+                          last_updated INTEGER,
+                          all_fetched INTEGER 
+                          )"
+                                                         
+                          dbSendQuery(.self$con, create_str)
+                          
+                          create_str_tweet <- "CREATE TABLE Tweet(Id INTEGER PRIMARY KEY,
+                                              text CHAR(150),
+                                              favorited INTEGER,
+                                              replyToSN VARCHAR(20),
+                                              created INTEGER,
+                                              truncated INTEGER,
+                                              replyToSID  VARCHAR(20),
+                                              twitterID VARCHAR(20),
+                                              replyToUID VARCHAR(20),
+                                              statusSource VARCHAR(128),
+                                              screenName  VARCHAR(20),
+                                              retweetCount INTEGER,
+                                              retweeted INTEGER,
+                                              longitude DOUBLE PRECISION,
+                                              latitude  DOUBLE PRECISION,
+                                              TwitterCitationId  INTEGER,
+                                              FOREIGN KEY(TwitterCitationId) REFERENCES TwitterCitation(Id)
+                          )"
+                          
+                          dbSendQuery(.self$con, create_str_tweet)
+                        }
+   
+                      
+                      },
+                                     
+                    initialize = function(newscrapeRobj, oldContainer = NULL, source_name)
+                      {
+                      
+                         .self$SQL_init()
+                      
                          if (is.null(oldContainer))
                           {
                             require(newscrapeR)
@@ -197,8 +257,8 @@ CitationContainer = setRefClass("CitationContainer",
                             .self$source_name <- source_name
                             
                             # set the list of pending articles back to empty state
-                            .self$pending_articles <- list();
-                            .self$newscrapeR_name <- newscrapeR_name;
+                            .self$pending_articles <- list();              
+                            .self$newscrapeR <- newscrapeRobj
                            }
                          else
                          { 
@@ -211,9 +271,18 @@ CitationContainer = setRefClass("CitationContainer",
                            }
                          .self$citation_list <- tmp_citation_list;
                          .self$last_added <- oldContainer$last_added;
-                         .self$newscrapeR_name <- oldContainer$newscrapeR_name
+                         
+                         if (is.null(newscrapeRobj))
+                           {
+                           .self$newscrapeR <- oldContainer$newscrapeR
+                           }
+                         else
+                           {
+                             .self$newscrapeR <- newscrapeRobj  
+                           }
+                         
                          .self$source_name <- oldContainer$source_name
-                           
+                  
                          }
                       
                       },
@@ -325,18 +394,17 @@ CitationContainer <- function(newscrapeRobj, source_name)
   if (!inherits(newscrapeRobj, "newscrapeR")) 
     stop("newscrapeRobj must be of class 'newscrapeR'")
   
-  newscrapeR_name <- deparse(substitute(newscrapeRobj))
-  ret <- new("CitationContainer", newscrapeRobj = newscrapeRobj, newscrapeR_name = newscrapeR_name,
+  ret <- new("CitationContainer", newscrapeRobj = newscrapeRobj,
              source_name = source_name)
   ret
 }
 
-migrate.CitationContainer <- function(oldContainer)
+migrate.CitationContainer <- function(oldContainer, newscrapeRobj = NULL)
 {
   if (!inherits(oldContainer, "CitationContainer")) 
     stop("oldContainer must be of class 'CitationContainer'")
   
-  ret <- new("CitationContainer",oldContainer = oldContainer, newscrapeRobj = NULL)   
+  ret <- new("CitationContainer",oldContainer = oldContainer, newscrapeRobj = newscrapeRobj)   
   ret
 }
 
@@ -378,7 +446,9 @@ downloadTweets <-  function(object, n.max = 100)
   {
     
     fetched <- object$citation_list[[i]]$all_fetched
-    if(fetched == FALSE) 
+    check_timerange <- object$citation_list[[i]]$created_at > Sys.time() - 604800 &&
+                       object$citation_list[[i]]$created_at < Sys.time() - 0
+    if(fetched == FALSE && check_timerange)
     {
       object$citation_list[[i]]$grabTweets()
       j <- j + 1 # increase counter of downloads by one.

@@ -17,6 +17,11 @@ append_list <- function(list,obj)
 
 # ----------------------------------------- Helper Functions -------------------------------------#
 
+unix2POSIXct  <-  function(time)   
+  {
+  structure(time, class = c("POSIXt", "POSIXct")) 
+  }
+
 scraping_links_wrapper <- function(active_source)
   {
   require(R.utils)
@@ -762,9 +767,7 @@ scrapeR <- setRefClass("newscrapeR",
                          require(RSQLite)
                          enc <- function(x) 
                             {
-                            require(tau)
                             x <- gsub("'", "''", x) 
-                            x <- fixEncoding(x)
                             x
                             }
                          connection = .self$con;
@@ -788,7 +791,7 @@ scrapeR <- setRefClass("newscrapeR",
                          
                          var_sql <- paste(var_sql, as.integer(article$empty_content),")",sep="")
                          
-                         print(var_sql)
+                         devprint(var_sql)
                          dbSendQuery(connection, var_sql)
                          
                          
@@ -817,7 +820,7 @@ scrapeR <- setRefClass("newscrapeR",
                        search_articles = function(keywords = character(), sources = vector(),
                                                   from, to)
                         {
-                         
+                         require(RSQLite)
                          query_string <-  "SELECT * FROM Article WHERE "
                          
                          if (length(keywords)>0)
@@ -836,6 +839,7 @@ scrapeR <- setRefClass("newscrapeR",
                          res <- dbGetQuery(conn=.self$con,query_string)
                          Encoding(res$content) <- "UTF-8"
                          Encoding(res$title) <- "UTF-8"
+                         res$load_date <- as.Date(unix2POSIXct(res$load_date))
                          return(res)
                         },
                          
