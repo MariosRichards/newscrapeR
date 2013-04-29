@@ -127,10 +127,11 @@ CitationContainer = setRefClass("CitationContainer",
                                  
     fields = list( citation_list = "list",
                    pending_articles = "list",
+                   source_name = "character",
                    last_added ="Date",
                    newscrapeR = "ANY",
                    con = "ANY",
-                   drv = "ANY"
+                   db_name = "character"
                   ),
                                  
     methods = list( 
@@ -195,14 +196,13 @@ CitationContainer = setRefClass("CitationContainer",
                     
                     SQL_init = function()
                       {
-                      db_name <- "tweets.db"
                       
                       require(RSQLite)              
-                      .self$drv <- dbDriver("SQLite") 
-                      .self$con <- dbConnect(.self$drv,db_name)
+                      driver <- dbDriver("SQLite") 
+                      .self$con <- dbConnect(driver, .self$db_name)
                       dbGetQuery(.self$con,"PRAGMA ENCODING = \"UTF-8\";")
                                        
-                      if (!"TwitterCitation" %in% dbListTables(.self$con))
+                      if (!"TwitterCitation" %in% dbListTables(con))
                         {                        
                           create_str <- "CREATE TABLE TwitterCitation(Id INTEGER PRIMARY KEY,
                           article_title VARCHAR(512),
@@ -240,16 +240,147 @@ CitationContainer = setRefClass("CitationContainer",
    
                       
                       },
-                                     
-                    initialize = function(newscrapeRobj, oldContainer = NULL, source_name)
+                    
+                    dump_all = function()
+                      {
+                      Citations <- .self$citation_list
+                      
+                      for (i in 1:length(Citations))
+                        {
+                        if (Citations[[i]]$all_fetched == TRUE)
+                        .self$dump_citation(Citations[[i]]) 
+                        }
+                      },
+                    
+                    dump_citation = function(citationObj)
                       {
                       
-                         .self$SQL_init()
+                      require(RSQLite)
                       
+                      if (!isIdCurrent(.self$con))
+                        {
+                        driver <- dbDriver("RSQLite")
+                        .self$con <- dbConnect(driver, .self$db_name)
+                        }
+                          
+                        enc <- function(x) 
+                         {
+                            x <- gsub("'", "''", x) 
+                            x
+                         }
+                          
+                      var_sql <- "INSERT INTO TwitterCitation(article_title,url,fixed_url, created_at,source_name,last_updated,all_fetched) VALUES('"
+                      var_sql <- paste(var_sql, enc(citationObj$getArticle_title()),"',",sep="")
+                      var_sql <- paste(var_sql, "'", enc(citationObj$getUrl()),"',",sep="")
+                      var_sql <- paste(var_sql, "'", enc(citationObj$getFixed_url()),"',",sep="")
+                      
+                      created_at <- as.numeric(as.POSIXlt(citationObj$getCreated_at()))
+                      var_sql <- paste(var_sql, as.integer(created_at), ",", sep="")   
+                      
+                      var_sql <- paste(var_sql,"'",enc(citationObj$getSource_name()),"',",sep="")
+                      
+                      last_updated <- as.numeric(as.POSIXlt(citationObj$getLast_updated()))
+                      var_sql <- paste(var_sql, as.integer(last_updated), ",", sep="") 
+                          
+                      var_sql <- paste(var_sql, as.integer(citationObj$getAll_fetched()),")",sep="")
+                          
+                      res <- dbSendQuery(.self$con, var_sql)  
+                      dbClearResult(res)
+                      .self$dump_tweets(citationObj=citationObj)
+                                                                 
+                      },
+                    
+                    getCurrentIndex = function()
+                      {
+                        require(RSQLite)
+                        
+                        if (!isIdCurrent(.self$con))
+                        {
+                          driver <- dbDriver("RSQLite")
+                          .self$con <- dbConnect(driver, .self$db_name)
+                        }
+                        
+                        fetchID_SQL <- "SELECT * FROM TwitterCitation WHERE Id = (SELECT MAX(Id) FROM TwitterCitation)"
+                        
+                        res <- dbSendQuery(.self$con, fetchID_SQL)
+                        res2 <- fetch(res)  
+                        dbClearResult(res)
+                        return(res2$Id)
+                      },
+                    
+                    dump_tweets = function(citationObj)
+                      {
+                                     
+                      Tweets <- citationObj$tweetsDF
+                      
+                      if (nrow(Tweets)>0)
+                        {
+                        CurrentIndex <- .self$getCurrentIndex()  
+                        
+                        enc <- function(x) 
+                        {
+                          x <- gsub("'", "''", x) 
+                          x
+                        }
+                        
+                        
+                        integer_null <- function(obj)
+                          {
+                            if (is.null(obj)) ret <- -1
+                            else ret <- obj
+                            return(as.integer(ret))
+                          }
+                        
+                        double_null <- function(obj)
+                          {
+                            if (is.null(obj) || is.na(obj)) ret <- -999
+                            else ret <- obj
+                            return(ret)
+                          }
+                        
+                        var_sql <- "INSERT INTO Tweet(text,replyToSN,replyToSID, created,twitterID,replyToUID,statusSource,screenName,favorited,truncated,retweetCount,retweeted,longitude,latitude,TwitterCitationId) VALUES('"
+                        var_sql <- paste(var_sql, enc(Tweets$text),"',",sep="")
+                        var_sql <- paste(var_sql, "'", enc(Tweets$replyToSN),"',",sep="")
+                        var_sql <- paste(var_sql, "'", enc(Tweets$replyToSID),"',",sep="")
+                        
+                        created <- as.numeric(as.POSIXlt(Tweets$created))
+                        var_sql <- paste(var_sql, as.integer(created), ",", sep="")   
+                                         
+                        var_sql <- paste(var_sql,"'",enc(Tweets$twitterID),"',",sep="")   
+                        var_sql <- paste(var_sql, "'", enc(Tweets$replyToUID),"',",sep="")
+                        var_sql <- paste(var_sql, "'", enc(Tweets$statusSource),"',",sep="")                  
+                        var_sql <- paste(var_sql, "'", enc(Tweets$screenName),"',",sep="")                    
+  
+                        var_sql <- paste(var_sql, integer_null(Tweets$favorited),",",sep="")                    
+                        var_sql <- paste(var_sql, integer_null(Tweets$truncated),",",sep="")                    
+                        var_sql <- paste(var_sql, integer_null(Tweets$retweetCount),",",sep="")
+                        var_sql <- paste(var_sql, integer_null(Tweets$retweeted),",",sep="")
+                   
+                        var_sql <- paste(var_sql, double_null(Tweets$longitude),",",sep="")
+                        var_sql <- paste(var_sql, double_null(Tweets$latitude),",",sep="")
+                                                 
+                        var_sql <- paste(var_sql, CurrentIndex,")",sep="")
+                        
+                        print(var_sql)
+                        for (i in 1:length(var_sql))
+                          {
+                          res <- dbSendQuery(.self$con, var_sql[i])  
+                          dbClearResult(res)
+                          }
+                        }
+                      },
+                                     
+                    initialize = function(newscrapeRobj, oldContainer = NULL, source_name,
+                                          db_name = "tweets.db")
+                      {
+                                        
                          if (is.null(oldContainer))
                           {
                             require(newscrapeR)
                             art_list <- articles(newscrapeRobj,sources=source_name);
+                            
+                            .self$db_name <- db_name
+                            .self$SQL_init()
                             
                             .self$pending_articles <- art_list;
                             .self$create_initial_citation_list();
@@ -262,7 +393,9 @@ CitationContainer = setRefClass("CitationContainer",
                            }
                          else
                          { 
-                           
+                         .self$db_name <- db_name # change later to old object
+                         .self$SQL_init()
+                         
                          .self$pending_articles <- oldContainer$pending_articles;
                          tmp_citation_list <- oldContainer$citation_list
                          for (i in 1:length(tmp_citation_list))
@@ -304,6 +437,13 @@ CitationContainer = setRefClass("CitationContainer",
                   )
                                                           
 );
+
+
+# -------------------------- Accessor Functions for TwitterCitation ------------------------#
+
+TwitterCitation$accessors(c("article_title","url","fixed_url"))
+TwitterCitation$accessors(c("created_at","source_name"))
+TwitterCitation$accessors(c("last_updated","all_fetched"))
 
 #################### Twitter User List ########################## 
 
@@ -447,12 +587,13 @@ downloadTweets <-  function(object, n.max = 100)
     
     fetched <- object$citation_list[[i]]$all_fetched
     check_timerange <- object$citation_list[[i]]$created_at > Sys.time() - 604800 &&
-                       object$citation_list[[i]]$created_at < Sys.time() - 0
+                       object$citation_list[[i]]$created_at < Sys.time() - 345600
     if(fetched == FALSE && check_timerange)
     {
       object$citation_list[[i]]$grabTweets()
       j <- j + 1 # increase counter of downloads by one.
       object$citation_list[[i]]$all_fetched <- TRUE
+      object$dump_citation(object$citation_list[[i]]) # dump this citation to SQL database
       cat("Test No.:",j)
     }
     

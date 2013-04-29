@@ -15,6 +15,7 @@ append_list <- function(list,obj)
     list
   }
 
+
 # ----------------------------------------- Helper Functions -------------------------------------#
 
 unix2POSIXct  <-  function(time)   
@@ -82,6 +83,19 @@ remove_tags = function(article)
   }
   
   return(uncleaned_article)
+}
+
+json_to_r_link = function(json_obj)
+  {
+    require(rjson)
+    ret <- fromJSON(json_obj)
+    ret
+  }
+
+check_valid_url = function(item)
+{
+  a =  grep("http://", item)
+  a
 }
 
 # ----------------------------------------------- Article --------------------------------------#
@@ -444,6 +458,8 @@ NewsSource <- setRefClass("Source",
                       {
                         new_articles_count <- 0
                         fetched_counter <- 0
+                         
+                      #  on.exit(dbDisconnect(.self$parent$con))
                         
                         for (i in seq_along(.self$article_links))
                         {
@@ -498,8 +514,10 @@ NewsSource <- setRefClass("Source",
                         close(.self$pbar)
                         }
                         else cat("\n No new articles from ",.self$name," available right now. Try again later.")
-                                  
+                        
+                        cleaned <- lapply(dbListResults(conn=.self$parent$con), FUN=function(x) dbClearResult(x))          
                       },
+                                           
                       
                       # fetches a single article
                
@@ -608,8 +626,7 @@ scrapeR <- setRefClass("newscrapeR",
                        links       = "vector",
                        active_links = "vector",
                        ROAuth = "ANY",
-                       con = "ANY",
-                       drv = "ANY"
+                       con = "ANY"
                        
                      ),
                      
@@ -626,6 +643,21 @@ scrapeR <- setRefClass("newscrapeR",
                            if (!is.na(temp)) ret <- .self$source_list[[j]]
                          }
                          ret
+                       },
+                       
+                       initDB = function()
+                       {
+                         
+                         require(RSQLite)
+                         # initialize database
+                         driver <- dbDriver("SQLite")
+                         
+                         if (!isIdCurrent(.self$con))
+                         {
+                           db_name <- paste(.self$name,".db",sep="")  
+                          .self$con <- dbConnect(driver, db_name)
+                         }  
+                         
                        },
                        
                        # function which checks which of the requested sources are available and starts a query_YQL search.
@@ -658,6 +690,7 @@ scrapeR <- setRefClass("newscrapeR",
                        
                        update_sources = function(sources = .self$active_source_list)
                        {
+                         initDB() # initialize SQL database
                          LinkList <- sources; 
                          cat("In Progress: \n")
                          for (i in seq_along(LinkList))
@@ -764,7 +797,9 @@ scrapeR <- setRefClass("newscrapeR",
                        
                        dump_article = function(article)
                        { 
-                         require(RSQLite)
+                         
+                         .self$initDB()
+                         
                          enc <- function(x) 
                             {
                             x <- gsub("'", "''", x) 
@@ -798,7 +833,9 @@ scrapeR <- setRefClass("newscrapeR",
                        },
                        
                        complete_dump = function()
-                         {
+                         {   
+                         
+                         on.exit(dbDisconnect(.self$con))
                          
                          for (i in seq_along(.self$active_source_list))
                            {
@@ -814,6 +851,8 @@ scrapeR <- setRefClass("newscrapeR",
                                 }
                             }
                            }
+                         
+                         cleaned <- lapply(dbListResults(conn=.self$con),FUN=function(x) dbClearResult(x))
                                     
                          },
                        
@@ -857,8 +896,8 @@ scrapeR <- setRefClass("newscrapeR",
                               }
                             
                             require(RSQLite)              
-                            .self$drv <- dbDriver("SQLite") 
-                            .self$con <- dbConnect(.self$drv,db_name)
+                            driver <- dbDriver("SQLite") 
+                            .self$con <- dbConnect(driver,db_name)
                             dbGetQuery(.self$con,"PRAGMA ENCODING = \"UTF-8\";")
                             
                             if (!"Article" %in% dbListTables(.self$con))
@@ -1010,8 +1049,19 @@ scrapeR <- setRefClass("newscrapeR",
                                         name="Miami Herald",url="http://www.miamiherald.com",aliases=c("Miami Herald"),rss=TRUE,
                                         article_xpath="//div[@id='storyBodyContent']/p|a")
                            
-                           .self$source_list <- append_list(.self$source_list,miami)
+                           .self$source_list <- append_list(.self$source_list, miami)
+                            
+                            DailyExpress <- new("Source",query="select * from rss where url='http://feeds.feedburner.com/daily-express-news-showbiz?format=xml'",
+                                         name="Daily Express",url="http://www.express.co.uk/",aliases=c("Daily Express","Sunday Express"),rss=TRUE,
+                                         article_xpath="//div/p|a")
+                            
+                            .self$source_list <- append_list(.self$source_list, DailyExpress)
+                            
+                            DailyMail <- new("Source",query="select * from rss where url='http://www.dailymail.co.uk/home/index.rss'",
+                                                name="Daily Mail",url="http://www.dailymail.co.uk",aliases=c("Mail On Sunday","Daily Mail","Mail Online"),rss=TRUE,
+                                                article_xpath="//div[@class='article-text wide']/p|a")
                           
+                            .self$source_list <- append_list(.self$source_list, DailyMail)
                             
                             for (i in 1:length(.self$source_list))
                                 {
