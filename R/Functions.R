@@ -1,5 +1,5 @@
 # turns on development mode
-In_Development = FALSE;
+In_Development = TRUE;
 MultiCore = TRUE;
 
 # print function only active in development mode  
@@ -96,6 +96,12 @@ check_valid_url = function(item)
 {
   a =  grep("http://", item)
   a
+}
+
+clean_database_suffix = function(url_str)
+{
+ret_str <- gsub("^([^?]+).*", "\\1", url_str) 
+ret_str
 }
 
 # ----------------------------------------------- Article --------------------------------------#
@@ -477,7 +483,10 @@ NewsSource <- setRefClass("Source",
                         if (.self$article_links[[i]]$already_fetched == FALSE) 
                             {
                             string1 <- 'select * from html where url="'
+                            
                             temp_url <- .self$get_url(.self$article_links[[i]])
+                            temp_url <- clean_database_suffix(temp_url)
+                            
                             string2 <- '" and xpath="'
                             xpath <- .self$article_xpath
                             
@@ -525,7 +534,10 @@ NewsSource <- setRefClass("Source",
                       {
                      
                         string1 <- 'select * from html where url="'
+                        
                         temp_url <- .self$get_url(Link)
+                        temp_url <- clean_database_suffix(temp_url)
+                        
                         string2 <- '" and xpath="'
                         xpath <- .self$article_xpath
                         
@@ -561,6 +573,7 @@ NewsSource <- setRefClass("Source",
                         final_url <- URLencode(paste(yql_address,"?q=",query,"&format=",format,sep=""))
                         devprint(final_url)
                         final_url2 <- url(final_url)
+                        devprint(final_url2)
                         
                         i <- 1
                         while (i < 2){
@@ -780,6 +793,18 @@ scrapeR <- setRefClass("newscrapeR",
                            }
                          },
                        
+                       create_source = function(query, name, aliases, rss=TRUE, url,
+                                                article_xpath)
+                         {
+                        
+                         new.source <- new("Source",query=query,
+                                       name=name,aliases=aliases,rss=rss,url=url,
+                                       article_xpath=article_xpath)
+                         
+                         .self$source_list <- append_list(.self$source_list,  new.source)  
+                           
+                         },
+                       
                        remove_source = function(selected_sources)
                        {
                          
@@ -957,12 +982,7 @@ scrapeR <- setRefClass("newscrapeR",
                            
                            .self$source_list[4] = telegraph;
                            
-                           
-                          # latimes = new("Source",query="select * from rss where url='http://pipes.yahoo.com/pipes/pipe.run?_id=5dc8a87340794a992d374f7389268bc3&_render=rss'",name="Los Angeles Times",
-                          #              aliases=c("Los Angeles Times","LA Times"),url="http://www.latimes.com/",rss=TRUE,article_xpath="//div[@id='story-body-text']/p|a")
-                           
-                          # .self$source_list[5] = latimes;
-                           
+                                               
                            natpost = new("Source",query="select * from rss where url='http://news.nationalpost.com/category/news/feed/'",
                                          name="National Post",aliases="National Post",url="http://www.nationalpost.com",rss=TRUE,
                                          article_xpath="//div[@class='npBlock npPostContent']//p")
@@ -1013,13 +1033,7 @@ scrapeR <- setRefClass("newscrapeR",
                            #
                            #
                            #.self$source_list[10] = philly;
-                           
-                          #seattle <- new("Source",query="select * from rss where url='http://seattletimes.com/rss/home.xml'",
-                          #                name="The Seattle Times",aliases=c("The Seattle Times","Seattle Times"),rss=TRUE,url="http://seattletimes.com",
-                          #                article_xpath="//div[@id='leftcolumn']//p")
-                          # 
-                          # .self$source_list[10] = seattle;
-                            
+                                                     
                            detroit <- new("Source",query="select * from rss where url='http://www.detroitnews.com/feeds/rss.xml'",
                                           name="The Detroit News",aliases=c("Detroit News","The Detroit News"),rss=TRUE,
                                           article_xpath="//div[@class='gel-content']//p",url="http://www.detroitnews.com")
@@ -1053,7 +1067,7 @@ scrapeR <- setRefClass("newscrapeR",
                             
                             DailyExpress <- new("Source",query="select * from rss where url='http://feeds.feedburner.com/daily-express-news-showbiz?format=xml'",
                                          name="Daily Express",url="http://www.express.co.uk/",aliases=c("Daily Express","Sunday Express"),rss=TRUE,
-                                         article_xpath="//div/p|a")
+                                         article_xpath="//div[@class='clearfix hR new-style']/p|a")
                             
                             .self$source_list <- append_list(.self$source_list, DailyExpress)
                             
@@ -1062,6 +1076,18 @@ scrapeR <- setRefClass("newscrapeR",
                                                 article_xpath="//div[@class='article-text wide']/p|a")
                           
                             .self$source_list <- append_list(.self$source_list, DailyMail)
+                            
+                            seattle <- new("Source",query="select * from rss where url='http://seattletimes.com/rss/home.xml'",
+                                            name="The Seattle Times",aliases=c("The Seattle Times","Seattle Times"),rss=TRUE,url="http://seattletimes.com",
+                                            article_xpath="//div[@id='leftcolumn']//p")
+                             
+                            .self$source_list <- append_list(.self$source_list, seattle)
+                            
+                            # LA Times
+                            .self$create_source(query="select * from rss where url='http://pipes.yahoo.com/pipes/pipe.run?_id=5dc8a87340794a992d374f7389268bc3&_render=rss'",
+                                                name="Los Angeles Times",aliases=c("Los Angeles Times","LA Times"),
+                                                 url="http://www.latimes.com/",rss=TRUE,article_xpath="//div[@id='story-body-text']/p|a")
+
                             
                             for (i in 1:length(.self$source_list))
                                 {
