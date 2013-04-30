@@ -1007,20 +1007,7 @@ scrapeR <- setRefClass("newscrapeR",
                                                   name="Chicago Tribune",aliases=c("Chicago Tribune"),url="http://www.chicagotribune.com/",rss=TRUE,article_xpath="//div[@id='story-body-text']/p|a")
                            
                            .self$source_list[8] = chicago_tribune;
-                           
-                           
-                          # nypost <- new("Source",query="select * from rss where url='http://www.nypost.com/rss/all_section.xml'",
-                          #               name="New York Post",aliases=c("NY Post","New York Post"),url="http://www.nypost.com/",rss=TRUE,article_xpath="//div[@id='story-body']/p|a")
-                           
-                          # .self$source_list[9] = nypost;
-                           
-                          # watimes <- new("Source",query="select * from rss where url='http://www.washingtontimes.com/atom/headlines/news/'",
-                          #                name="The Washington Times",aliases=c("Washington Times","The Washington Times"),
-                          #                url="http://www.washingtontimes.com",rss=TRUE,
-                          #                article_xpath="//div[@class='story left mb']//p")
-                          # 
-                          #  .self$source_list[9] = watimes;
-                           
+                                            
                            baltimoresun <- new("Source",query="select * from rss where url='http://feeds.feedburner.com/baltimoresun/news/rss2'",
                                                name="Baltimore Sun",aliases="Baltimore Sun",url="http://www.baltimoresun.com/",
                                                rss=TRUE,article_xpath="//div[@id='story-body-text']//p")
@@ -1087,7 +1074,17 @@ scrapeR <- setRefClass("newscrapeR",
                             .self$create_source(query="select * from rss where url='http://pipes.yahoo.com/pipes/pipe.run?_id=5dc8a87340794a992d374f7389268bc3&_render=rss'",
                                                 name="Los Angeles Times",aliases=c("Los Angeles Times","LA Times"),
                                                  url="http://www.latimes.com/",rss=TRUE,article_xpath="//div[@id='story-body-text']/p|a")
-
+                            
+                            .self$create_source(query="select * from rss where url='http://www.nypost.com/rss/newscore.xml'",
+                                                name="New York Post",aliases=c("NY Post","New York Post"),
+                                                url="http://www.nypost.com/",rss=TRUE,article_xpath="//div[@id='story-body']/p|a")
+                                                         
+                            
+                            .self$create_source(query="select * from rss where url='http://www.washingtontimes.com/atom/headlines/news/'",
+                                            name="The Washington Times",aliases=c("Washington Times","The Washington Times"),
+                                            url="http://www.washingtontimes.com",rss=TRUE,
+                                            article_xpath="//div[@class='story left mb']//p")
+                             
                             
                             for (i in 1:length(.self$source_list))
                                 {
