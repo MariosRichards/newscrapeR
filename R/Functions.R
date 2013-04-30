@@ -2,6 +2,8 @@
 In_Development = TRUE;
 MultiCore = TRUE;
 
+#Martins Kommentar
+
 # print function only active in development mode  
 devprint = function(obj_text)
   {
