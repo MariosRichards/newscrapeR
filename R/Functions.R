@@ -1,5 +1,5 @@
 # turns on development mode
-In_Development = TRUE;
+In_Development = FALSE;
 MultiCore = TRUE;
 
 #Martins Kommentar
@@ -1087,6 +1087,8 @@ scrapeR <- setRefClass("newscrapeR",
                                             url="http://www.washingtontimes.com",rss=TRUE,
                                             article_xpath="//div[@class='story left mb']//p")
                              
+                            .self$create_source(query="select * from rss where url='http://azstarnet.com/search/?f=rss&t=article&c=news/local&l=25&s=start_time&sd=desc'", name="Arizona Daily Star",aliases="Arizona Daily Star", 
+                                                url="http://azstarnet.com", rss=TRUE, article_xpath="//div[@class='hnews hentry item']//p|a")
                             
                             for (i in 1:length(.self$source_list))
                                 {
@@ -1211,8 +1213,8 @@ ArtListToDF <- function (List)
     do.call("rbind", lapply(List, as.data.frame))
   };
 
-setMethod("as.data.frame","Article", 
-          function(x,row.names = NULL, optional = FALSE) 
+setMethod("as.data.frame",signature="Article", 
+          function(x,row.names = NULL, optional = FALSE,...) 
           {
             
             df <- data.frame(title = x$title, author = as.factor(x$author), abstract = x$abstract,
@@ -1258,8 +1260,8 @@ ArtListToCorpus <- function (List,language="en")
 
 # -------------------------- S4 Methods for Article class -------------------------------------#
 
-setMethod("summary","Article", 
-          function(object)
+setMethod("summary",signature="Article", 
+          function(object,...)
           {  
           object$summary()
           }
@@ -1268,8 +1270,8 @@ setMethod("summary","Article",
 
 # -------------------------- S4 Methods for Source class -------------------------------------#
 
-setMethod("summary","Source", 
-           function(object)
+setMethod("summary",signature="Source", 
+           function(object,...)
            {  
             object$summary()
            }
@@ -1279,14 +1281,14 @@ setMethod("summary","Source",
 # -------------------------- S4 Methods for newscrapeR class -------------------------------------#
 
 # show method for newscrapeR object
-setMethod("show","newscrapeR", function(object) 
+setMethod("show",signature="newscrapeR", function(object) 
   {
     object$show()
   } 
 );
 
 # show method for newscrapeR object
-setMethod("summary","newscrapeR", function(object) 
+setMethod("summary",signature="newscrapeR", function(object,...) 
   {
     object$summary()
   } 
@@ -1302,7 +1304,7 @@ setGeneric("download",
            }
 );
 
-setMethod("download","newscrapeR", function(object, sources = NULL, exclude = NULL) 
+setMethod("download","newscrapeR", function(object, sources = NULL, exclude = NULL,...) 
             
              {
               final_sources <- list()

@@ -217,11 +217,11 @@ PDFSource <- setRefClass("PDFSource",
                            )
                          ) 
 
-arxiv_stats = new("PDFSource", query="select * from rss where url='http://export.arxiv.org/rss/stat'",
+ arxiv_stats = new("PDFSource", query="select * from rss where url='http://export.arxiv.org/rss/stat'",
                   name="arXiv Statistics",url="http://arxiv.org/",rss=TRUE,
                   replace_command='paste0(gsub(pattern="abs",replacement="pdf",link),"v1.pdf")')
 
-setMethod("download","PDFSource", function(object)
+setMethod("download",signature="PDFSource", function(object,...)
   {
   object$query_YQL()
   object$fetch_pdfs()

@@ -557,14 +557,14 @@ migrate.TwitterCitation <- function(oldTwitterCitation)
 # -------------------------- S4 Methods for CitationContainer class -------------------------------------#
 
 # show method for CitationContainer object
-setMethod("show","CitationContainer", function(object) 
+setMethod("show",signature="CitationContainer", function(object) 
   {
     object$show()
   } 
 );
 
 # show method for CitationContainer object
-setMethod("summary","CitationContainer", function(object) 
+setMethod("summary","CitationContainer", function(object,...) 
   {
     object$summary()
   } 

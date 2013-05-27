@@ -4,7 +4,8 @@ Title: Data Mining of Newspapers
 Version: 0.71
 Date: 2013-01-01
 Author: Philipp Burckhardt
-Depends: rjson, methods, R.utils, twitteR, RSQLite
+Depends: rjson, methods, R.utils
+Imports: RSQLite, twitteR
 Suggests: tm, ROAuth
 Maintainer: Philipp Burckhardt <philipp.burckhardt@mansfield.ox.ac.uk>
 Description: Based on the Yahoo! Query Language, this tool allows automated data mining of international newspapers.

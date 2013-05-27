@@ -1,3 +1,10 @@
+exportClasses('Article','Source','newscrapeR','PDFSource')
+
+exportClasses('TwitterCitation','CitationContainer',
+'UserContainer')
+
+exportMethods(summary,as.data.frame)
+
 export(articles)
 export(newscrapeR)
 export(migrate.newscrapeR)
@@ -14,17 +21,3 @@ export(downloadTweets)
 export(CitationContainer)
 export(migrate.CitationContainer)
 
-
-exportMethods(show)
-exportMethods(download)
-exportMethods(summary)
-
-# newscrapeR  classes
-exportClasses(Article)
-exportClasses(Source)
-exportClasses(newscrapeR)
-
-# twitteR connection
-exportClasses(TwitterCitation)
-exportClasses(CitationContainer)
-exportClasses(UserContainer)
