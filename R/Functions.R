@@ -1241,21 +1241,18 @@ ArtListToCorpus <- function (List,language="en")
         Contents <- df$content 
         x<-VectorSource(Contents)
         mycorpus <- Corpus(x,readerControl=list(reader=readPlain(),language=language))
+        
+        for (i in 1:length(mycorpus))
+          {
+          meta(mycorpus[[i]], "Date") = df$load_date[i]
+          meta(mycorpus[[i]], "Newspaper") = df$published_in[i] 
+          meta(mycorpus[[i]], "Heading") = df$title[i] 
+          }
+         
         return(mycorpus)
       }
     else
-      {
-      cat('trying to install package "tm"')
-      install.packages("tm")
-      if(require(tm,quietly=TRUE))
-        {
-          df <- ArtListToDF(List)
-          Contents <- df$content 
-          x<-VectorSource(Contents)
-          mycorpus <- Corpus(x,readerControl=list(reader=readPlain(),language=language))
-          return(mycorpus)
-        } else stop('could not install package "tm"')
-       }    
+      cat('package "tm" must be installed.')
   };
 
 # -------------------------- S4 Methods for Article class -------------------------------------#
