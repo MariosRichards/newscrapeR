@@ -1242,13 +1242,15 @@ ArtListToCorpus <- function (List,language="en")
         x<-VectorSource(Contents)
         mycorpus <- Corpus(x,readerControl=list(reader=readPlain(),language=language))
         
-        for (i in 1:length(mycorpus))
-          {
-          meta(mycorpus[[i]], "Date") = df$load_date[i]
-          meta(mycorpus[[i]], "Newspaper") = df$published_in[i] 
-          meta(mycorpus[[i]], "Heading") = df$title[i] 
-          }
-         
+        i = 0
+        mycorpus = tm_map(mycorpus, function(x){
+          i <<- i + 1               
+          meta(x, "DateTimeStamp") = df$load_date[i]
+          meta(x, "Origin") = df$published_in[i] 
+          meta(x, "Heading") = df$title[i] 
+          x
+        })
+             
         return(mycorpus)
       }
     else
