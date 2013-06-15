@@ -673,10 +673,10 @@ scrapeR <- setRefClass("newscrapeR",
                          }
                        
                        .self$active_source_list[[i]]$articles <- 
-                         active_source$articles[!unlist(lapply(.self$active_source_list[[i]]$articles, is.null))]
+                         .self$active_source_list[[i]]$articles[!unlist(lapply(.self$active_source_list[[i]]$articles, is.null))]
                        
                        .self$active_source_list[[i]]$article_links <-
-                         active_source$article_links[!unlist(lapply(.self$active_source_list[[i]]$article_links,is.null))]
+                         .self$active_source_list[[i]]$article_links[!unlist(lapply(.self$active_source_list[[i]]$article_links,is.null))]
 
                        },
                                                                
