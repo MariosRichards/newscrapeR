@@ -652,7 +652,8 @@ scrapeR <- setRefClass("newscrapeR",
                          {                        
                          removable_urls <- vector()
                          
-                         lapply(.self$active_source_list[[i]]$articles,function(x)
+                         .self$active_source_list[[i]]$articles <- 
+                           lapply(.self$active_source_list[[i]]$articles,function(x)
                            {
                            if(x$load_date < Sys.Date() - 30)
                              {
@@ -663,6 +664,7 @@ scrapeR <- setRefClass("newscrapeR",
                          }
                          )
                          
+                         .self$active_source_list[[i]]$article_links <- 
                          lapply(.self$active_source_list[[i]]$article_links,
                                 function(x) 
                                   { 
