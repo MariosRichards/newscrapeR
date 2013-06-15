@@ -2,8 +2,6 @@
 In_Development = FALSE;
 MultiCore = TRUE;
 
-#Martins Kommentar
-
 # print function only active in development mode  
 devprint = function(obj_text)
   {
@@ -646,6 +644,42 @@ scrapeR <- setRefClass("newscrapeR",
                      ),
                      
                      methods = list(
+                       
+                       purge_articles = function()
+                       {
+                       
+                       for (i in 1:length(.self$active_source_list))
+                         {                        
+                         active_source <- .self$active_source_list[[i]]
+                         removable_urls <- vector()
+                         
+                         lapply(active_source$articles,function(x)
+                           {
+                           if(x$load_date < Sys.Date() - 30)
+                             {
+                             x <- NULL;
+                             removable_urls <- c(removable_urls,x$url);                         
+                             }                     
+                           x;
+                         }
+                         )
+                         
+                         lapply(active_source$article_links,
+                                function(x) 
+                                  { 
+                                  if (x$link %in% removable_urls) x <- NULL;
+                                  x;
+                                  }
+                         )  
+                         }
+                       
+                       active_source$articles <- 
+                         active_source$articles[!unlist(lapply(active_source$articles, is.null))]
+                       
+                       active_source$article_links <-
+                         active_source$article_links[!unlist(lapply(active_source$article_links,is.null))]
+
+                       },
                                                                
                        check_article = function(Link)
                        {
@@ -882,7 +916,7 @@ scrapeR <- setRefClass("newscrapeR",
                          cleaned <- lapply(dbListResults(conn=.self$con),FUN=function(x) dbClearResult(x))
                                     
                          },
-                       
+                                           
                        search_articles = function(keywords = character(), sources = vector(),
                                                   from, to)
                         {
