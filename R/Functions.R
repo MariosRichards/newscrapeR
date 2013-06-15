@@ -650,10 +650,9 @@ scrapeR <- setRefClass("newscrapeR",
                        
                        for (i in 1:length(.self$active_source_list))
                          {                        
-                         active_source <- .self$active_source_list[[i]]
                          removable_urls <- vector()
                          
-                         lapply(active_source$articles,function(x)
+                         lapply(.self$active_source_list[[i]]$articles,function(x)
                            {
                            if(x$load_date < Sys.Date() - 30)
                              {
@@ -664,7 +663,7 @@ scrapeR <- setRefClass("newscrapeR",
                          }
                          )
                          
-                         lapply(active_source$article_links,
+                         lapply(.self$active_source_list[[i]]$article_links,
                                 function(x) 
                                   { 
                                   if (x$link %in% removable_urls) x <- NULL;
@@ -673,11 +672,11 @@ scrapeR <- setRefClass("newscrapeR",
                          )  
                          }
                        
-                       active_source$articles <- 
-                         active_source$articles[!unlist(lapply(active_source$articles, is.null))]
+                       .self$active_source_list[[i]]$articles <- 
+                         active_source$articles[!unlist(lapply(.self$active_source_list[[i]]$articles, is.null))]
                        
-                       active_source$article_links <-
-                         active_source$article_links[!unlist(lapply(active_source$article_links,is.null))]
+                       .self$active_source_list[[i]]$article_links <-
+                         active_source$article_links[!unlist(lapply(.self$active_source_list[[i]]$article_links,is.null))]
 
                        },
                                                                
