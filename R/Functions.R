@@ -657,8 +657,8 @@ scrapeR <- setRefClass("newscrapeR",
                            {
                            if(x$load_date < Sys.Date() - 30)
                              {
-                             x <- NULL;
-                             removable_urls <- c(removable_urls,x$url);                         
+                             removable_urls <- c(removable_urls,x$url);  
+                             x <- NULL;                       
                              }                     
                            x;
                          }
@@ -672,14 +672,15 @@ scrapeR <- setRefClass("newscrapeR",
                                   x;
                                   }
                          )  
-                         }
-                       
-                       .self$active_source_list[[i]]$articles <- 
-                         .self$active_source_list[[i]]$articles[!unlist(lapply(.self$active_source_list[[i]]$articles, is.null))]
-                       
-                       .self$active_source_list[[i]]$article_links <-
-                         .self$active_source_list[[i]]$article_links[!unlist(lapply(.self$active_source_list[[i]]$article_links,is.null))]
-
+                         
+                         .self$active_source_list[[i]]$articles <- 
+                           .self$active_source_list[[i]]$articles[!unlist(lapply(.self$active_source_list[[i]]$articles, is.null))]
+                         
+                         .self$active_source_list[[i]]$article_links <-
+                           .self$active_source_list[[i]]$article_links[!unlist(lapply(.self$active_source_list[[i]]$article_links,is.null))]
+                         
+                         
+                         }                   
                        },
                                                                
                        check_article = function(Link)
@@ -987,7 +988,7 @@ scrapeR <- setRefClass("newscrapeR",
                            
                            spiegel = new("Source", query="select * from rss where url='http://www.spiegel.de/schlagzeilen/index.rss'",
                                          name="Spiegel Online",aliases=c("Spiegel","Der Spiegel","Spiegel Online"),url="http://www.spiegel.de",rss=TRUE,
-                                         article_xpath="//div[@id='spArticleSection']/p[not(script)]"
+                                         article_xpath="//div[@class='article-section clearfix']/p[not(script)]"
                                          );
                            
                            .self$source_list[1] = spiegel;
