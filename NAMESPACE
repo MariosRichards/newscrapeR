@@ -6,6 +6,7 @@ exportClasses('TwitterCitation','CitationContainer',
 exportMethods(summary,as.data.frame)
 
 export(articles)
+export(fetch_SQL)
 export(newscrapeR)
 export(migrate.newscrapeR)
 export(download)

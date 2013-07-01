@@ -923,6 +923,14 @@ scrapeR <- setRefClass("newscrapeR",
                                                   from, to)
                         {
                          require(RSQLite)
+                         
+                         driver <- dbDriver("SQLite")
+                         if (!isIdCurrent(.self$con))
+                         {
+                           db_name <- paste(.self$name,".db",sep="")  
+                           .self$con <- dbConnect(driver, db_name)
+                         }  
+
                          query_string <-  "SELECT * FROM Article WHERE "
                          
                          if (length(keywords)>0)
